@@ -1,0 +1,9 @@
+D:\programming\PR\mnk1\mnk1\bin\Debug\mnk1.exe.config
+D:\programming\PR\mnk1\mnk1\bin\Debug\mnk1.exe
+D:\programming\PR\mnk1\mnk1\bin\Debug\mnk1.pdb
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.csprojResolveAssemblyReference.cache
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.Properties.Resources.resources
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.csproj.GenerateResource.Cache
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.exe
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.pdb
+D:\programming\PR\mnk1\mnk1\obj\Debug\mnk1.Form1.resources
