@@ -24,6 +24,8 @@ namespace mnk1
                                               // 3 -> y = x * sin(2 * PI * x)
                                               // 4 -> y = 2 * x; простая функция
 
+        public const int COUNT_OF_BLOCKS_IN_CROSS = 10; //количество блоков при кросс-валидации
+
         public Form1()
         {
             InitializeComponent();
@@ -53,20 +55,28 @@ namespace mnk1
                 chart1.Series[1].Points.AddXY(elem.X, elem.Y);
             }
 
-            double[,] matrix = new double[M, M];
-            double[] b = new double[M];
+            double[] w = findPolynomCoeff(SelectionTable, M);
+
+            crossValidation(SelectionTable, M, 1);
+            //Вывод на экран найденного полинома
+            drawResultFunction(w, FUNCTION_NUMBER);
+        }
+
+        //Функция по выборке строит систему линейных уравнений и решает ее, возвращая массив неизвестных w
+        double[] findPolynomCoeff(selectionElement[] selectionTable, int m)
+        {
+            double[,] matrix;
+            double[] b;
 
             //создание матрицы на основе выборки
-            matrix = createMatrix(SelectionTable);
+            matrix = createMatrix(selectionTable, m);
             //создание вектора правых частей
-            b = createRightVector(SelectionTable);
+            b = createRightVector(selectionTable, m);
 
             //Решение СЛАУ методом Гаусса
             LinearSystem ls = new LinearSystem(matrix, b);
             double[] w = ls.XVector; //вектор с результатом
-
-            //Вывод на экран найденного полинома
-            drawResultFunction(w, FUNCTION_NUMBER);
+            return w;
         }
 
         //Функция генерирует выборку
@@ -115,10 +125,68 @@ namespace mnk1
         double calculateError(double[] w, selectionElement[] SelectionTable)
         {
             double resultSum = 0;
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < SelectionTable.Length; i++)
                 resultSum += Math.Pow(SelectionTable[i].Y - ResultFunction(w, SelectionTable[i].X), 2);
 
             return resultSum /= 2;
+        }
+
+
+        /*  
+         *   Кросс-валидация
+         *
+         *   SelectionTable -  выборка
+         *                m -  степень полинома
+         *                l -  параметр лямбда
+         */
+        void crossValidation(selectionElement[] selectionTable, int m, int l)
+        {
+
+            //Разделение выборки на блоки
+            int countOfElementsInBlock = selectionTable.Length / COUNT_OF_BLOCKS_IN_CROSS;
+
+            selectionElement[] blockForControl = new selectionElement[countOfElementsInBlock];
+            for (int i = 0; i < countOfElementsInBlock; i++)
+                blockForControl[i] = new selectionElement();
+
+            selectionElement[] blockForEducation = new selectionElement[selectionTable.Length - countOfElementsInBlock];
+            for (int i = 0; i < selectionTable.Length - countOfElementsInBlock; i++)
+                blockForEducation[i] = new selectionElement();
+
+            int t = 0;
+            double error = 0;
+            double fullError = 0;
+            for (int i = 0; i < COUNT_OF_BLOCKS_IN_CROSS; i++)
+            {
+                //Добавление элементов текущей группы элементов для контроля в массив контроля
+                for (int j = 0; j < countOfElementsInBlock; j++)
+                {
+                    blockForControl[j].X = selectionTable[i * COUNT_OF_BLOCKS_IN_CROSS + j].X;
+                    blockForControl[j].Y = selectionTable[i * COUNT_OF_BLOCKS_IN_CROSS + j].Y;
+                }
+                //Добавление элементов текущей группы элементов для обучения в массив обучения
+                for (int g = 0; g < selectionTable.Length; g++)
+                {
+                    if ((g >= i * COUNT_OF_BLOCKS_IN_CROSS) && (g < i * COUNT_OF_BLOCKS_IN_CROSS + countOfElementsInBlock))//пропустить элементы выборки, которые уже записаны в контроль
+                        continue;
+
+                    blockForEducation[t].X = selectionTable[g].X;
+                    blockForEducation[t].Y = selectionTable[g].Y;
+                    t++;
+                }
+                t = 0;
+
+                //Получение полинома из обучающей выборки
+                double[]w = findPolynomCoeff(blockForEducation, m);
+                //Рассчет ошибки с помощью контрольной выборки
+                error = calculateError(w, blockForControl) / blockForControl.Length;
+                fullError += error;
+                error = 0;
+            }
+
+            fullError = fullError / COUNT_OF_BLOCKS_IN_CROSS;
+            
+
         }
 
         //Функция выводит на экран график заданной функции
@@ -221,13 +289,13 @@ namespace mnk1
         double SimpleFunction(double x) { return 2 * x; }
 
         //Создание и заполнение матрицы (A)
-        double[,] createMatrix(selectionElement[] selectionTable)
+        double[,] createMatrix(selectionElement[] selectionTable, int m)
         {
             double sum = 0;
-            double[,] matrix = new double[M, M];
+            double[,] matrix = new double[m, m];
 
-            for (int i = 0; i < M; i++)
-                for (int j = 0; j < M; j++)
+            for (int i = 0; i <m; i++)
+                for (int j = 0; j < m; j++)
                 {
                     for (int g = 0; g < selectionTable.Length; g++)
                     {
@@ -240,17 +308,16 @@ namespace mnk1
         }
 
         //Создание и заполнение вектора правых частей (b)
-        double[] createRightVector(selectionElement[] selectionTable)
+        double[] createRightVector(selectionElement[] selectionTable, int m)
         {
             double sum = 0;
-            double[] b = new double[M];
+            double[] b = new double[m];
             for (int i = 0; i < M; i++)
             {
                 for (int k = 0; k < selectionTable.Length; k++)
                 {
                     sum += selectionTable[k].Y * Math.Pow(selectionTable[k].X, i);
                 }
-
                 b[i] = sum;
                 sum = 0;
             }
@@ -347,4 +414,5 @@ namespace mnk1
             }
         }
     }
+
 }
