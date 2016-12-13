@@ -13,16 +13,6 @@ namespace mnk1
 {
     public partial class Form1 : Form
     {
-        public const int N = 100; // размер выборки
-        public const double D = 0.1;
-        public const int M = 8;
-        public const int MISTAKE_TYPE = 2;    // 1 -> с равномерным распределением
-                                              // 2 -> с нормальным распределением
-
-        public const int FUNCTION_NUMBER = 3; // 1 -> y = cos(2 * PI * x)
-                                              // 2 -> y = 5x^3 + x^2  + 5
-                                              // 3 -> y = x * sin(2 * PI * x)
-                                              // 4 -> y = 2 * x; простая функция
 
         public const int COUNT_OF_BLOCKS_IN_CROSS = 20; //количество блоков при кросс-валидации
 
@@ -39,8 +29,6 @@ namespace mnk1
             chart1.Series[3].Name = "Функция после кросс-валидации";
             chart1.Series[4].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
             chart1.Series[4].Name = "Функция после регуляризации";
-
-
         }
 
         //Функция по выборке строит систему линейных уравнений и решает ее, возвращая массив неизвестных w
@@ -57,17 +45,43 @@ namespace mnk1
             //Решение СЛАУ методом Гаусса
             LinearSystem ls = new LinearSystem(matrix, b);
             double[] w = ls.XVector; //вектор с результатом
+
+            bool check = SolutionCheck(matrix, b, w);
+
             return w;
         }
 
+        //Функция проверяет решение СЛАУ
+        bool SolutionCheck(double[,] matrix, double[] b, double[] w)
+        {
+
+            double sum = 0;
+            double[] result = new double[b.Length];
+            for (int i = 0; i < b.Length; i++)
+            {
+                for (int j = 0; j < b.Length; j++)
+                {
+                    sum += matrix[i, j] * w[j];
+                }
+                result[i] = sum;
+                sum = 0;
+            }
+
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (b[i] != result[i])
+                    return false;
+            }
+            return true;
+        }
         //Функция генерирует выборку
-        void createSelection(int functionNumber, selectionElement[] selectionTable)
+        void createSelection(int functionNumber, selectionElement[] selectionTable, int n, int mistakeType, double d)
         {
             double xi = 0;
             double yi = 0;
             Random r = new Random();
 
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < n; i++)
             {
                 xi = r.NextDouble() * (2 * Math.PI - 0) + 0;
 
@@ -86,17 +100,25 @@ namespace mnk1
                     case 4:
                         yi = SimpleFunction(xi);
                         break;
+                    case 5:
+                        yi = SimpleSinFunction(xi);
+                        break;
+                    case 6:
+                        yi = SimpleCosFunction(xi);
+                        break;
+                    case 7:
+                        yi = SinCosFunction(xi);
+                        break;
                 }
-
                 //Добавление ошибки
-                if (MISTAKE_TYPE == 1)
+                if (mistakeType == 1)
                 {
                     //min + r.NextDouble() * (max - min);
-                    yi += D * (-1) + r.NextDouble() * (D - D * (-1)); //Моделирование ошибки измерения с равномерным распределением на отрезке [-D,D]
+                    yi += d * (-1) + r.NextDouble() * (d - d * (-1)); //Моделирование ошибки измерения с равномерным распределением на отрезке [-D,D]
                 }
                 else
                 {
-                    yi += r.NextNormal() * D; //Моделирование ошибки измерения с нормальным распределением на отрезке (0,D)
+                    yi += r.NextNormal() * d; //Моделирование ошибки измерения с нормальным распределением на отрезке (0,D)
                 }
                 selectionTable[i].X = xi;
                 selectionTable[i].Y = yi;
@@ -112,14 +134,7 @@ namespace mnk1
             return resultSum;
         }
 
-
-        /*  
-         *   Кросс-валидация
-         *
-         *   SelectionTable -  выборка
-         *                m -  степень полинома
-         *                
-         */
+        //Кросс-валидация
         double crossValidation(selectionElement[] selectionTable, int m, double lambda = -1)
         {
             //Разделение выборки на блоки
@@ -146,7 +161,6 @@ namespace mnk1
                 //Добавление элементов текущей группы элементов для контроля в массив контроля
                 for (int j = 0; j < selectionTable.Length; j++)
                 {
-
                     if (j == needElement)
                     {
                         blockForControl[d].X = selectionTable[j].X;
@@ -172,18 +186,15 @@ namespace mnk1
                 blockError = 0;
             }
 
-
             fullError = fullError / COUNT_OF_BLOCKS_IN_CROSS;
 
             return fullError;
         }
 
-
-        void regularization(selectionElement[] selectionTable, int m, double lambda)
+        void regularization(selectionElement[] selectionTable, int functionNumber, int m, double lambda)
         {
-
             double[] w = findPolynomCoeff(selectionTable, m, lambda);
-            drawResultFunction(w, FUNCTION_NUMBER, false, true);
+            drawResultFunction(w, functionNumber, false, true);
         }
 
         //Функция выводит на экран график заданной функции
@@ -226,8 +237,32 @@ namespace mnk1
                         chart1.Series[0].Points.AddXY(x, y);
                     }
                     break;
-            }
+                case 5:
+                    // y = sin(x)
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = SimpleSinFunction(x);
+                        chart1.Series[0].Points.AddXY(x, y);
+                    }
+                    break;
 
+                case 6:
+                    // y = cos(x)
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = SimpleCosFunction(x);
+                        chart1.Series[0].Points.AddXY(x, y);
+                    }
+                    break;
+                case 7:
+                    // y = sin(x) - sin(x)*cos(x)
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = SinCosFunction(x);
+                        chart1.Series[0].Points.AddXY(x, y);
+                    }
+                    break;
+            }
         }
 
         //Функция выводит на экран найденный полином
@@ -270,15 +305,38 @@ namespace mnk1
                         chart1.Series[seriesNumber].Points.AddXY(x, y);
                     }
                     break;
+                case 5:
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = ResultFunction(w, x);
+                        chart1.Series[seriesNumber].Points.AddXY(x, y);
+                    }
+                    break;
+                case 6:
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = ResultFunction(w, x);
+                        chart1.Series[seriesNumber].Points.AddXY(x, y);
+                    }
+                    break;
+                case 7:
+                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    {
+                        y = ResultFunction(w, x);
+                        chart1.Series[seriesNumber].Points.AddXY(x, y);
+                    }
+                    break;
             }
         }
 
         //Функции:
         double CosFunction(double x) { return Math.Cos(2 * Math.PI * x); }
         double SinFunction(double x) { return x * Math.Sin(2 * Math.PI * x); }
+        double SimpleSinFunction(double x) { return Math.Sin(x); }
+        double SimpleCosFunction(double x) { return Math.Cos(x); }
+        double SinCosFunction(double x) { return Math.Sin(x) - Math.Sin(x) * Math.Cos(x); }
         double PolynomFunction(double x) { return 5 * Math.Pow(x, 3) + Math.Pow(x, 2) + 5; }
         double SimpleFunction(double x) { return 2 * x; }
-
         double ResultFunction(double[] w, double x)
         {
             double sum = 0;
@@ -289,41 +347,29 @@ namespace mnk1
             return sum;
         }
 
-
         //Создание и заполнение матрицы (A)
         double[,] createMatrix(selectionElement[] selectionTable, int m, double lambda = -1)
         {
             double sum = 0;
             double[,] matrix = new double[m, m];
+            
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < m; j++)
+                {
+                    for (int g = 0; g < selectionTable.Length; g++)
+                    {
+                        sum += Math.Pow(selectionTable[g].X, i + j);
+                    }
 
-            if (lambda == -1) //без регуляризации
-            {
-                for (int i = 0; i < m; i++)
-                    for (int j = 0; j < m; j++)
+                    if ((lambda != -1) && (i == j)) //регуляризация
                     {
-                        for (int g = 0; g < selectionTable.Length; g++)
-                        {
-                            sum += Math.Pow(selectionTable[g].X, i + j);
-                        }
-                        matrix[i, j] = sum;
-                        sum = 0;
+                        sum += lambda;
                     }
-            }
-            else
-            { //с регуляризацией
-                for (int i = 0; i < m; i++)
-                    for (int j = 0; j < m; j++)
-                    {
-                        for (int g = 0; g < selectionTable.Length; g++)
-                        {
-                            sum += Math.Pow(selectionTable[g].X, i + j);
-                        }
-                        if (i == j)
-                            sum += lambda;
-                        matrix[i, j] = sum;
-                        sum = 0;
-                    }
-            }
+
+                    matrix[i, j] = sum;
+                    sum = 0;
+                }
+
             return matrix;
         }
 
@@ -396,7 +442,7 @@ namespace mnk1
             }
 
             int functionNumber = 0;
-
+            int mistakeType = 1;
 
             if (radioButton1.Checked)
             {
@@ -410,7 +456,28 @@ namespace mnk1
             {
                 functionNumber = 3;
             }
-            
+            else if (radioButton6.Checked)
+            {
+                functionNumber = 5;
+            }
+            else if (radioButton7.Checked)
+            {
+                functionNumber = 6;
+            }
+            else if (radioButton8.Checked)
+            {
+                functionNumber = 7;
+            }
+
+            if (radioButton4.Checked)
+            {
+                mistakeType = 1;
+            }
+            else if (radioButton5.Checked)
+            {
+                mistakeType = 2;
+            }
+
             int n = Convert.ToInt32(numericUpDown1.Text);
             int m = Convert.ToInt32(numericUpDown3.Text);
             double d = Convert.ToDouble(numericUpDown2.Text);
@@ -426,7 +493,7 @@ namespace mnk1
             }
 
             //Генерирование выборки
-            createSelection(functionNumber, SelectionTable);
+            createSelection(functionNumber, SelectionTable, n, mistakeType, d);
 
             //вывод выборки на экран
             foreach (selectionElement elem in SelectionTable)
@@ -437,17 +504,16 @@ namespace mnk1
             double[] w = findPolynomCoeff(SelectionTable, m);
             drawResultFunction(w, functionNumber);
 
-           // int m = 30;                  // степень полинома
             double currentError = 0;    // ошибка, полученная для текущей степени M полинома 
-            double minError = 0;            // минимальная ошибка среди всех степеней M полинома
-            int bestM = 1;           // лучшая степень полинома
-            double bestLambda = 0;
+            double minError = 0;        // минимальная ошибка среди всех степеней M полинома
+            int bestM = 1;              // лучшая степень полинома
+            double bestLambda = 0;      // лучшее значение лямбды
+            
             //0-ая итерация
             minError = crossValidation(SelectionTable, m, 0.3);
             bestM = m;
 
-
-            for (int mCh = 1; mCh < 15; mCh++)
+            for (int mCh = 3; mCh < 15; mCh++)
                 for (double lam = 0.0; lam < 1.0; lam += 0.1)
                 {
                     currentError = crossValidation(SelectionTable, mCh, lam);
@@ -458,8 +524,6 @@ namespace mnk1
                         bestLambda = lam;
                     }
                 }
-            
-            //  MessageBox.Show(minError + " " + "Лучшая степень полинома: " + bestM + "; Лучшая лямбда: " + bestLambda);
 
             label6.Text = minError.ToString();
             label8.Text = bestM.ToString();
@@ -467,15 +531,9 @@ namespace mnk1
             double[] wBest = findPolynomCoeff(SelectionTable, bestM);
             drawResultFunction(wBest, functionNumber, true);
 
-            regularization(SelectionTable, bestM, bestLambda);
-
-            //Вывод на экран найденного полинома
-            //  drawResultFunction(w, FUNCTION_NUMBER);
-
-
+            regularization(SelectionTable, functionNumber, bestM, bestLambda);
         }
     }
-
 
     //Класс Элемент выборки
     class selectionElement
@@ -538,5 +596,4 @@ namespace mnk1
             }
         }
     }
-
 }
