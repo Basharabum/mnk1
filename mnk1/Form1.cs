@@ -83,18 +83,20 @@ namespace mnk1
 
             for (int i = 0; i < n; i++)
             {
-                xi = r.NextDouble() * (2 * Math.PI - 0) + 0;
-
+               xi = r.NextDouble() * (2 * Math.PI - 0) + 0;
+              // xi = r.NextDouble() * (Math.PI/2 - 0) + 0;
                 //Вычисление значения функции
                 switch (functionNumber)
                 {
                     case 1:
+                        xi = r.NextDouble() * (Math.PI / 2 - 0) + 0;
                         yi = CosFunction(xi);
                         break;
                     case 2:
                         yi = PolynomFunction(xi);
                         break;
                     case 3:
+                        xi = r.NextDouble() * (Math.PI / 2 - 0) + 0;
                         yi = SinFunction(xi);
                         break;
                     case 4:
@@ -206,7 +208,7 @@ namespace mnk1
             {
                 case 1:
                     // y = cos(2 * PI * x)
-                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    for (double x = 0; x < Math.PI/2; x += Math.PI / 180.0)
                     {
                         y = CosFunction(x);
                         chart1.Series[0].Points.AddXY(x, y);
@@ -223,7 +225,7 @@ namespace mnk1
                     break;
                 case 3:
                     //y = x * sin(2 * PI * x)
-                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    for (double x = 0; x < Math.PI/2; x += Math.PI / 180.0)
                     {
                         y = SinFunction(x);
                         chart1.Series[0].Points.AddXY(x, y);
@@ -278,7 +280,7 @@ namespace mnk1
             switch (functionNumber)
             {
                 case 1:
-                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    for (double x = 0; x < Math.PI/2; x += Math.PI / 180.0)
                     {
                         y = ResultFunction(w, x);
                         chart1.Series[seriesNumber].Points.AddXY(x, y);
@@ -292,7 +294,7 @@ namespace mnk1
                     }
                     break;
                 case 3:
-                    for (double x = 0; x < Math.PI * 2; x += Math.PI / 180.0)
+                    for (double x = 0; x < Math.PI/2; x += Math.PI / 180.0)
                     {
                         y = ResultFunction(w, x);
                         chart1.Series[seriesNumber].Points.AddXY(x, y);

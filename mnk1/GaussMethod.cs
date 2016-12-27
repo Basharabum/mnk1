@@ -96,13 +96,13 @@ namespace mnk1
                 }
             }
 
-            if (max_abs < eps)
+           /* if (max_abs < eps)
             {
                 if (Math.Abs(b_vector[row]) > eps)
                     throw new GaussSolutionNotFound("Система уравнений несовместна.");
                 else
                     throw new GaussSolutionNotFound("Система уравнений имеет множество решений.");
-            }
+            }*/
 
             // меняем местами индексы столбцов
             int temp = index[row];
